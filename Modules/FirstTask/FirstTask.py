@@ -89,6 +89,12 @@ class FirstTaskWidget(ScriptedLoadableModuleWidget):
     self.togglePythonInteractorButton.connect('clicked()', self.onTogglePythonInteractorButton)
     self.exitButton.connect('clicked()', self.onExitButtonClicked)
 
+    # FM MODIFICACION
+    self.ui.pushButton_DICOM.checkable = True
+    self.ui.pushButton_DICOM.toggled.connect(self.onPushButton_DICOM_Toggled)
+    self.parent.mrmlSceneChanged.connect(self.onMrmlSceneChanged)
+    self.ui.SubjectHierarchyTreeView.currentItemChanged.connect(self.onSubjectHierarchyTreeViewCurrentItemChanged)
+    
   #------------------------------------------------------------------------------
   def disconnect(self):
     logging.debug('FirstTask.disconnect')
@@ -101,7 +107,27 @@ class FirstTaskWidget(ScriptedLoadableModuleWidget):
     self.showSliceletButton.clicked.disconnect()
     self.togglePythonInteractorButton.clicked.disconnect()
     self.exitButton.clicked.disconnect()
+    
+    # FM MODIFICACION
+    self.ui.pushButton_DICOM.toggled.disconnect()
 
+
+  # FM MODIFICACION ------------------------------------------------------------------------------
+  def onPushButton_DICOM_Toggled(self, on):
+    if on:
+      dicomWidget = slicer.modules.dicom.widgetRepresentation().self()
+      slicer.modules.DICOMWidget.enter()
+    else:
+      slicer.modules.DICOMWidget.exit()
+
+  def onMrmlSceneChanged(self, mrmlScene):
+    self.ui.SubjectHierarchyTreeView.setMRMLScene(slicer.mrmlScene)
+    self.ui.VolumeInfoWidget.setMRMLScene(slicer.mrmlScene)
+
+  def onSubjectHierarchyTreeViewCurrentItemChanged(self, itemID):
+    node = self.ui.SubjectHierarchyTreeView.subjectHierarchyNode().GetItemDataNode(itemID)
+    if(node.IsA("vtkMRMLScalarVolumeNode")):
+        slicer.firstTaskWidget.ui.VolumeInfoWidget.setVolumeNode(node)
   #------------------------------------------------------------------------------
   def loadStyleSheet(self):
     styleFilePath = os.path.join(self.logic.fileDir, 'Resources', 'StyleSheets', 'FirstTaskStyle.qss')
@@ -185,6 +211,15 @@ class FirstTaskWidget(ScriptedLoadableModuleWidget):
     self.ui = slicer.util.childWidgetVariables(uiWidget)
 
     self.sliceletPanelLayout.addWidget(uiWidget)
+
+    # FM MODIFICACION
+    # Hierarchy tree view
+    self.ui.SubjectHierarchyTreeView.dragDropMode = qt.QAbstractItemView.InternalMove
+    self.ui.SubjectHierarchyTreeView.selectionMode = qt.QAbstractItemView.ExtendedSelection
+    self.ui.SubjectHierarchyTreeView.setColumnHidden(self.ui.SubjectHierarchyTreeView.model().idColumn, True)
+    self.ui.SubjectHierarchyTreeView.setColumnHidden(self.ui.SubjectHierarchyTreeView.model().transformColumn, True)
+    self.ui.SubjectHierarchyTreeView.setEditTriggers(qt.QAbstractItemView.DoubleClicked)
+
 
   #------------------------------------------------------------------------------
   def showSlicelet(self, maximizeViews=False, maximizeMainWindow=False, hideStatusBar=True):
